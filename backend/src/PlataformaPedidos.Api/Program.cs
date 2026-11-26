@@ -1,6 +1,9 @@
+using PlataformaPedidos.Infraestrutura;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AdicionarInfraestrutura(builder.Configuration);
 
 var app = builder.Build();
 
