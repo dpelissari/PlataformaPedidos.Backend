@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-PlataformaPedidos.Worker-2424960f-1a00-4f8b-8aa6-7fdafcdf6505</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlataformaPedidos.Aplicacao\PlataformaPedidos.Aplicacao.csproj" />
+    <ProjectReference Include="..\PlataformaPedidos.Infraestrutura\PlataformaPedidos.Infraestrutura.csproj" />
+  </ItemGroup>
+</Project>
