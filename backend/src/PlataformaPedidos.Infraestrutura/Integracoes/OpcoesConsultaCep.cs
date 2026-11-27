@@ -11,12 +11,12 @@ public sealed class OpcoesConsultaCep
     public const string Secao = "ConsultaCep";
 
     /// <summary>
-    /// URL base. No ambiente local aponta para o WireMock.
+    /// URL base. No ambiente local aponta para o ViaCEP.
     /// </summary>
-    public string UrlBase { get; set; } = ConexoesLocais.WireMock;
+    public string UrlBase { get; set; } = "https://viacep.com.br";
 
     /// <summary>
-    /// Caminho relativo. ViaCEP usa ws/{cep}/json/ e a BrasilAPI usa api/cep/v2/{cep}.
+    /// Caminho relativo. O padrão é o ViaCEP. A BrasilAPI usa api/cep/v2/{cep}.
     /// </summary>
-    public string Caminho { get; set; } = "cep/{cep}";
+    public string Caminho { get; set; } = "ws/{cep}/json/";
 }

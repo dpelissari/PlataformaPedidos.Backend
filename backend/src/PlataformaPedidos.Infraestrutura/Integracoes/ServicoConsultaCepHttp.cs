@@ -32,7 +32,7 @@ public sealed class ServicoConsultaCepHttp(
                 return FalhaHttp((int)resposta.StatusCode);
 
             var corpo = await resposta.Content.ReadFromJsonAsync<RespostaCep>(Json, cancellationToken);
-            if (corpo is null || corpo.Erro)
+            if (corpo is null || corpo.IndicaErro)
                 return NaoEncontrado();
 
             var cidade = PrimeiroPreenchido(corpo.Localidade, corpo.City);
@@ -78,7 +78,18 @@ public sealed class ServicoConsultaCepHttp(
         public string? Bairro { get; set; }
         public string? Localidade { get; set; }
         public string? Uf { get; set; }
-        public bool Erro { get; set; }
+
+        /// <summary>
+        /// ViaCEP envia "true" como texto. Um booleano também indica CEP inexistente.
+        /// </summary>
+        public JsonElement Erro { get; set; }
+
+        public bool IndicaErro => Erro.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.String => string.Equals(Erro.GetString(), "true", StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
         public string? Street { get; set; }
         public string? Neighborhood { get; set; }
         public string? City { get; set; }
