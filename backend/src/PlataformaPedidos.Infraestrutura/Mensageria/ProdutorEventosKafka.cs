@@ -15,6 +15,7 @@ public sealed class ProdutorEventosKafka : IBarramentoEventos, IDisposable
 {
     public const string HeaderTraceId = "TraceId";
     public const string HeaderTraceParent = "traceparent";
+    public const string HeaderMensagemId = "MensagemId";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly IProducer<string, string> _produtor;
@@ -63,13 +64,15 @@ public sealed class ProdutorEventosKafka : IBarramentoEventos, IDisposable
     /// <param name="traceId">Trace gravado junto com o evento.</param>
     /// <param name="traceParent">Cabeçalho W3C, quando a operação ainda está ativa.</param>
     /// <param name="cancellationToken">Token de cancelamento da operação.</param>
+    /// <param name="mensagemId">Identificador da mensagem de outbox, usado pelo consumidor para idempotência.</param>
     public async Task PublicarConteudoAsync(
         string topico,
         string chave,
         string conteudo,
         string? traceId,
         string? traceParent,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Guid? mensagemId = null)
     {
         var mensagem = new Message<string, string>
         {
@@ -83,6 +86,9 @@ public sealed class ProdutorEventosKafka : IBarramentoEventos, IDisposable
 
         if (!string.IsNullOrWhiteSpace(traceParent))
             mensagem.Headers.Add(HeaderTraceParent, Encoding.UTF8.GetBytes(traceParent));
+
+        if (mensagemId is Guid id && id != Guid.Empty)
+            mensagem.Headers.Add(HeaderMensagemId, Encoding.UTF8.GetBytes(id.ToString()));
 
         await _produtor.ProduceAsync(topico, mensagem, cancellationToken);
     }

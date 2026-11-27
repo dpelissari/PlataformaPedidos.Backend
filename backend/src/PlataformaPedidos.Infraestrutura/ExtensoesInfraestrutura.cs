@@ -24,13 +24,13 @@ public static class ExtensoesInfraestrutura
         this IServiceCollection servicos,
         IConfiguration configuracao)
     {
-        var postgres = configuracao.GetConnectionString("PlataformaPedidos");
-        if (string.IsNullOrWhiteSpace(postgres))
-            postgres = ConexoesLocais.Postgres;
-
         servicos.AddSingleton<InterceptadorOutbox>();
         servicos.AddDbContext<PedidosDbContext>((provedor, opcoes) =>
         {
+            var postgres = configuracao.GetConnectionString("PlataformaPedidos");
+            if (string.IsNullOrWhiteSpace(postgres))
+                postgres = ConexoesLocais.Postgres;
+
             opcoes.UseNpgsql(postgres);
             opcoes.AddInterceptors(provedor.GetRequiredService<InterceptadorOutbox>());
         });
@@ -38,11 +38,14 @@ public static class ExtensoesInfraestrutura
         servicos.AddScoped<IPedidoRepositorio, PedidoRepositorio>();
         servicos.AddScoped<IUnidadeTrabalho, UnidadeTrabalho>();
 
-        var redis = configuracao.GetConnectionString("Redis");
-        if (string.IsNullOrWhiteSpace(redis))
-            redis = ConexoesLocais.Redis;
+        servicos.AddStackExchangeRedisCache(opcoes =>
+        {
+            var redis = configuracao.GetConnectionString("Redis");
+            if (string.IsNullOrWhiteSpace(redis))
+                redis = ConexoesLocais.Redis;
 
-        servicos.AddStackExchangeRedisCache(opcoes => opcoes.Configuration = redis);
+            opcoes.Configuration = redis;
+        });
         servicos.AddSingleton<IServicoCache, ServicoCacheRedis>();
 
         servicos.Configure<OpcoesConsultaCep>(configuracao.GetSection(OpcoesConsultaCep.Secao));
@@ -63,6 +66,9 @@ public static class ExtensoesInfraestrutura
 
         servicos.AddSingleton<ProdutorEventosKafka>();
         servicos.AddSingleton<IBarramentoEventos>(provedor => provedor.GetRequiredService<ProdutorEventosKafka>());
+        servicos.Configure<OpcoesOutbox>(configuracao.GetSection(OpcoesOutbox.Secao));
+        servicos.AddSingleton<PublicadorOutbox>();
+        servicos.AddSingleton<ConsumidorPagamentoPedido>();
 
         return servicos;
     }

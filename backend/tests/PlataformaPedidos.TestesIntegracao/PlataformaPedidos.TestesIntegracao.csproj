@@ -8,10 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" Version="2.16.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="FluentAssertions" Version="8.11.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.15" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.4" />
     <PackageReference Include="Testcontainers" Version="4.17.0" />
+    <PackageReference Include="Testcontainers.Kafka" Version="4.17.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.17.0" />
+    <PackageReference Include="Testcontainers.Redis" Version="4.17.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
@@ -21,8 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\PlataformaPedidos.Api\PlataformaPedidos.Api.csproj" />
+    <ProjectReference Include="..\..\src\PlataformaPedidos.Api\PlataformaPedidos.Api.csproj" Aliases="Api" />
     <ProjectReference Include="..\..\src\PlataformaPedidos.Infraestrutura\PlataformaPedidos.Infraestrutura.csproj" />
+    <ProjectReference Include="..\..\src\PlataformaPedidos.Worker\PlataformaPedidos.Worker.csproj" />
   </ItemGroup>
 
 </Project>
