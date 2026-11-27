@@ -1,6 +1,6 @@
 # PlataformaPedidos.Backend
 
-O pedido nasce com o status **Rascunho**. O usuário informa o CEP, o número e os itens. A API busca o endereço no ViaCEP, guarda o pedido no PostgreSQL e devolve esse rascunho para a tela.
+Pedidos nascem com o status **Rascunho**. O usuário informa o CEP, o número e os itens. A API busca o endereço no ViaCEP, guarda o pedido no PostgreSQL e devolve esse rascunho para a tela.
 
 Pedir o pagamento não confirma na hora. O status passa para **Aguardando pagamento** e uma mensagem fica gravada junto com o pedido, na tabela `mensagens_outbox`. A tela continua consultando até o status mudar.
 
@@ -35,21 +35,38 @@ flowchart LR
 
 ## Subir na sua máquina
 
-Na raiz deste repositório, em terminais separados para a API e para o worker:
+Abra um terminal na pasta deste repositório. A API e o worker precisam cada um do seu terminal, e os dois ficam abertos enquanto você testa.
+
+1. Subir a infraestrutura (banco de dados PostgreSQL, Redis, Kafka e painel de observabilidade).
 
 ```powershell
 docker compose up -d
+```
+
+2. Atualizar o banco de dados. O comando aplica a migration do projeto e deixa as tabelas prontas.
+
+```powershell
 dotnet ef database update --project backend/src/PlataformaPedidos.Infraestrutura/PlataformaPedidos.Infraestrutura.csproj
+```
+
+3. Subir a API. Deixe este terminal aberto.
+
+```powershell
 dotnet run --project backend/src/PlataformaPedidos.Api --launch-profile http
+```
+
+4. Subir o worker, em outro terminal. Deixe este terminal aberto.
+
+```powershell
 dotnet run --project backend/src/PlataformaPedidos.Worker
 ```
 
-O Compose sobe o banco, o Redis, o Kafka e o painel de observabilidade. A migration cria as tabelas. Sem o worker, o pedido para em **Aguardando pagamento**. Sem as credenciais de teste do Mercado Pago, o pedido também para aí: a cobrança não tem como ser autorizada.
+Sem o worker, o pedido para em **Aguardando pagamento**. Sem as credenciais de teste do Mercado Pago, o pedido também para aí: a cobrança não tem como ser autorizada.
 
 | O que | Para quê | Onde |
 |---|---|---|
 | API em ASP.NET Core | Recebe o pedido, o pagamento e o cancelamento | http://localhost:5081 |
-| Scalar | Mostra os endpoints da API | http://localhost:5081/scalar |
+| Scalar | Documentação da API e endpoints | http://localhost:5081/scalar |
 | Health check | Diz se PostgreSQL, Redis e Kafka estão respondendo | http://localhost:5081/health |
 | PostgreSQL | Guarda o pedido, a outbox e as mensagens já processadas | localhost:5432, banco `plataforma_pedidos`, usuário e senha `plataforma` |
 | Redis | Guarda a consulta de CEP e a consulta do pedido | localhost:6379 |
@@ -61,17 +78,23 @@ O Compose sobe o banco, o Redis, o Kafka e o painel de observabilidade. A migrat
 
 O endereço sai do ViaCEP. Qualquer CEP existente funciona, e um número inexistente volta como não encontrado.
 
-O pagamento usa as credenciais de teste de uma aplicação **Checkout Transparente** no [Mercado Pago Developers](https://www.mercadopago.com.br/developers/panel/app). Checkout Pro não aceita o cartão digitado nesta tela. Copie a Public Key e o Access Token do ambiente de teste. Essas chaves não entram no Git. Quem clonar o repositório precisa das próprias.
+## Credenciais de teste
 
-Na raiz deste repositório:
+O cartão é digitado na tela, então a aplicação no Mercado Pago precisa ser **Checkout Transparente**, no ambiente de teste. Cada pessoa cria a sua no [Mercado Pago Developers](https://www.mercadopago.com.br/developers/panel/app). A Public Key e o Access Token não entram no Git.
+
+1. Copiar a Public Key e o Access Token de teste dessa aplicação.
+
+2. Na raiz deste repositório, criar o arquivo local a partir do exemplo.
 
 ```powershell
 Copy-Item mercadopago.local.exemplo.json mercadopago.local.json
 ```
 
-Abra `mercadopago.local.json` e troque os dois textos pelas credenciais. A API e o worker leem esse arquivo ao subir. Ele está no `.gitignore`. Não commite o Access Token. A Public Key pode ser vista no navegador; o token, não.
+3. Abrir `mercadopago.local.json` e trocar os dois textos pelas credenciais. A API e o worker leem esse arquivo quando sobem. Se eles já estiverem abertos, feche e suba de novo.
 
-Na tela de cartão, um teste que aprova usa o Visa `4235 6477 2802 5682`, validade `11/30`, código `123`, titular `APRO` e CPF `12345678909`. O nome escrito no titular define o resultado: `APRO` aprova o pagamento, `OTHE` recusa o cartão e `FUND` recusa porque o limite é insuficiente. Nenhum desses números cobra de verdade.
+A Public Key aparece na tela. O Access Token fica só nesse arquivo. Ele está no `.gitignore`.
+
+Na tela de cartão, um teste que aprova usa o Visa `4235 6477 2802 5682`, validade `11/30`, código `123`, titular `APRO` e CPF `12345678909`. O que você escreve no titular muda o resultado: `APRO` aprova o pagamento, `OTHE` recusa o cartão e `FUND` recusa porque o limite é insuficiente. No e-mail, use qualquer endereço válido, menos o da conta do Mercado Pago. Nenhum desses números cobra de verdade.
 
 ## Testes
 
