@@ -1,0 +1,82 @@
+# PlataformaPedidos.Backend
+
+O pedido nasce com o status **Rascunho**. O usuário informa o CEP, o número e os itens. A API busca o endereço no ViaCEP, guarda o pedido no PostgreSQL e devolve esse rascunho para a tela.
+
+Pedir o pagamento não confirma na hora. O status passa para **Aguardando pagamento** e uma mensagem fica gravada junto com o pedido, na tabela `mensagens_outbox`. A tela continua consultando até o status mudar.
+
+O worker lê essa tabela e publica a mensagem no Kafka. Depois ele mesmo consome `pedidos.pagamento-solicitado` e cobra o cartão no Mercado Pago, em modo de teste. Se o pagamento for aprovado, o pedido fica **Confirmado**. Se for recusado, fica **Cancelado**, com o motivo. Se a mesma mensagem chegar de novo, o worker reconhece o identificador e não cobra outra vez. Um pedido que ainda não foi confirmado também pode ser cancelado, com um motivo.
+
+O front-end que mostra essa história está no repositório `PlataformaPedidos.Frontend`. O porquê da outbox, do Redis e da idempotência está em `docs/adr/`.
+
+```mermaid
+flowchart LR
+  Web["Angular<br/>front-end"] --> API["API<br/>back-end"]
+  API --> Postgres[("PostgreSQL<br/>banco de dados")]
+  API --> Redis[("Redis<br/>cache")]
+  API --> ViaCEP["ViaCEP<br/>consulta de CEP"]
+  API --> Aspire["Aspire Dashboard<br/>rastreabilidade"]
+  Worker["Worker<br/>processamento do pagamento"] --> Postgres
+  Worker --> Redis
+  Worker --> Kafka["Kafka<br/>fila de mensagens"]
+  Worker --> MercadoPago["Mercado Pago<br/>cartão de teste"]
+  Worker --> Aspire
+  Kafka --> Worker
+```
+
+1. O usuário preenche o CEP e os demais dados e clica em criar pedido.
+2. A API consulta o CEP no ViaCEP, registra no PostgreSQL com status **Rascunho** e guarda o endereço no Redis.
+3. O usuário informa o cartão na tela. O navegador pede um token ao Mercado Pago e a API não recebe o número do cartão.
+4. A API muda o status para **Aguardando pagamento** e guarda a mensagem, com o token, no PostgreSQL.
+5. O worker lê essa mensagem e publica no Kafka.
+6. O Kafka devolve a mensagem ao worker.
+7. O worker cria o pagamento no Mercado Pago. Aprovado, o pedido segue. Recusado, o pedido é cancelado.
+8. O worker grava no PostgreSQL o status **Confirmado**.
+9. A tela consulta de novo e mostra **Confirmado**. O Aspire Dashboard mostra o rastro dessa passagem.
+
+## Subir na sua máquina
+
+Na raiz deste repositório, em terminais separados para a API e para o worker:
+
+```powershell
+docker compose up -d
+dotnet ef database update --project backend/src/PlataformaPedidos.Infraestrutura/PlataformaPedidos.Infraestrutura.csproj
+dotnet run --project backend/src/PlataformaPedidos.Api --launch-profile http
+dotnet run --project backend/src/PlataformaPedidos.Worker
+```
+
+O Compose sobe o banco, o Redis, o Kafka e o painel de observabilidade. A migration cria as tabelas. Sem o worker, o pedido para em **Aguardando pagamento**. Sem as credenciais de teste do Mercado Pago, o pedido também para aí: a cobrança não tem como ser autorizada.
+
+| O que | Para quê | Onde |
+|---|---|---|
+| API em ASP.NET Core | Recebe o pedido, o pagamento e o cancelamento | http://localhost:5081 |
+| Scalar | Mostra os endpoints da API | http://localhost:5081/scalar |
+| Health check | Diz se PostgreSQL, Redis e Kafka estão respondendo | http://localhost:5081/health |
+| PostgreSQL | Guarda o pedido, a outbox e as mensagens já processadas | localhost:5432, banco `plataforma_pedidos`, usuário e senha `plataforma` |
+| Redis | Guarda a consulta de CEP e a consulta do pedido | localhost:6379 |
+| Kafka | Leva a mensagem do pedido até o worker | localhost:9092 |
+| ViaCEP | Devolve o endereço de um CEP real. Gratuito e sem chave | https://viacep.com.br |
+| Mercado Pago | Cobra o cartão de teste. A Public Key fica no navegador e o Access Token fica só na API e no worker | https://api.mercadopago.com |
+| Aspire Dashboard | Mostra os rastros das chamadas da API e do worker | http://localhost:18888 |
+| Angular | Tela para criar o pedido e acompanhar o status | http://localhost:4200 |
+
+O endereço sai do ViaCEP. Qualquer CEP existente funciona, e um número inexistente volta como não encontrado.
+
+O pagamento usa as credenciais de teste de uma aplicação **Checkout Transparente** no [Mercado Pago Developers](https://www.mercadopago.com.br/developers/panel/app). Checkout Pro não aceita o cartão digitado nesta tela. Copie a Public Key e o Access Token do ambiente de teste. Essas chaves não entram no Git. Quem clonar o repositório precisa das próprias.
+
+Na raiz deste repositório:
+
+```powershell
+Copy-Item mercadopago.local.exemplo.json mercadopago.local.json
+```
+
+Abra `mercadopago.local.json` e troque os dois textos pelas credenciais. A API e o worker leem esse arquivo ao subir. Ele está no `.gitignore`. Não commite o Access Token. A Public Key pode ser vista no navegador; o token, não.
+
+Na tela de cartão, um teste que aprova usa o Visa `4235 6477 2802 5682`, validade `11/30`, código `123`, titular `APRO` e CPF `12345678909`. O nome escrito no titular define o resultado: `APRO` aprova o pagamento, `OTHE` recusa o cartão e `FUND` recusa porque o limite é insuficiente. Nenhum desses números cobra de verdade.
+
+## Testes
+
+```powershell
+dotnet test backend/PlataformaPedidos.sln
+```
+
+Os testes de integração sobem PostgreSQL, Redis, Kafka e WireMock pelo Testcontainers. O Docker precisa estar em execução.
