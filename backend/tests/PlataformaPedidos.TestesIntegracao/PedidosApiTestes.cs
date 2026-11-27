@@ -58,6 +58,19 @@ public sealed class PedidosApiTestes(AmbienteIntegracao ambiente)
     }
 
     [Fact]
+    public async Task GetEndereco_QuandoCepInexistente_RespondeNaoEncontrado()
+    {
+        await ambiente.LimparAsync();
+        await ambiente.InstalarCepInexistenteAsync();
+
+        var resposta = await ambiente.Cliente.GetAsync("/api/enderecos/99999999");
+        var corpo = await resposta.Content.ReadAsStringAsync();
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.NotFound, corpo);
+        JsonSerializer.Deserialize<Problema>(corpo, Json)!.Codigo.Should().Be("cep.nao_encontrado");
+    }
+
+    [Fact]
     public async Task PostPedidos_QuandoCepResponde503_RecuperaComRetry()
     {
         await ambiente.LimparAsync();
@@ -75,13 +88,24 @@ public sealed class PedidosApiTestes(AmbienteIntegracao ambiente)
         await ambiente.LimparAsync();
         var criado = await CriarPedidoAsync();
 
-        var solicitacao = await ambiente.Cliente.PostAsync($"/api/pedidos/{criado.Id}/solicitar-pagamento", null);
+        var solicitacao = await ambiente.Cliente.PostAsJsonAsync(
+            $"/api/pedidos/{criado.Id}/solicitar-pagamento",
+            new
+            {
+                token = "token-teste",
+                bandeira = "visa",
+                parcelas = 1,
+                emailPagador = "comprador@teste.com",
+                tipoDocumento = "CPF",
+                numeroDocumento = "12345678909"
+            },
+            Json);
         var corpoSolicitacao = await solicitacao.Content.ReadAsStringAsync();
         solicitacao.StatusCode.Should().Be(HttpStatusCode.OK, corpoSolicitacao);
 
         var confirmado = await EsperarStatusAsync(criado.Id, "Confirmado");
         confirmado.Status.Should().Be("Confirmado");
-        (await ambiente.ContarRequisicoesAsync("/pagamentos/autorizar")).Should().Be(1);
+        (await ambiente.ContarRequisicoesAsync("/v1/orders")).Should().Be(1);
 
         await using var contexto = ambiente.CriarContexto();
         var mensagem = await contexto.MensagensOutbox
@@ -94,7 +118,7 @@ public sealed class PedidosApiTestes(AmbienteIntegracao ambiente)
 
         await using var contextoDepois = ambiente.CriarContexto();
         (await contextoDepois.MensagensProcessadas.CountAsync(item => item.MensagemId == mensagem.Id)).Should().Be(1);
-        (await ambiente.ContarRequisicoesAsync("/pagamentos/autorizar")).Should().Be(1);
+        (await ambiente.ContarRequisicoesAsync("/v1/orders")).Should().Be(1);
 
         var aposDuplicata = await ambiente.Cliente.GetFromJsonAsync<PedidoTeste>($"/api/pedidos/{criado.Id}", Json);
         aposDuplicata!.Status.Should().Be("Confirmado");

@@ -106,6 +106,18 @@ public sealed class AmbienteIntegracao : IAsyncLifetime
         await InstalarStubsPadraoAsync();
     }
 
+    public async Task InstalarCepInexistenteAsync()
+    {
+        using var resposta = await _admin.PostAsync($"{UrlWireMock}/__admin/reset", null);
+        resposta.EnsureSuccessStatusCode();
+
+        await PublicarMapeamentoAsync(new
+        {
+            request = new { method = "GET", urlPath = "/cep/99999999" },
+            response = new { status = 200, jsonBody = new { erro = "true" } }
+        });
+    }
+
     public async Task InstalarCepInstavelAsync()
     {
         using var resposta = await _admin.PostAsync($"{UrlWireMock}/__admin/reset", null);
@@ -175,8 +187,16 @@ public sealed class AmbienteIntegracao : IAsyncLifetime
         });
         await PublicarMapeamentoAsync(new
         {
-            request = new { method = "POST", urlPath = "/pagamentos/autorizar" },
-            response = new { status = 200, jsonBody = new { autorizado = true } }
+            request = new { method = "POST", urlPath = "/v1/orders" },
+            response = new
+            {
+                status = 201,
+                jsonBody = new Dictionary<string, string>
+                {
+                    ["status"] = "processed",
+                    ["status_detail"] = "accredited"
+                }
+            }
         });
     }
 
@@ -193,8 +213,10 @@ public sealed class AmbienteIntegracao : IAsyncLifetime
         ["Kafka:Servidores"] = Kafka,
         ["ConsultaCep:UrlBase"] = UrlWireMock,
         ["ConsultaCep:Caminho"] = "cep/{cep}",
-        ["GatewayPagamento:UrlBase"] = UrlWireMock,
-        ["GatewayPagamento:Caminho"] = "pagamentos/autorizar",
+        ["MercadoPago:UrlBase"] = UrlWireMock,
+        ["MercadoPago:Caminho"] = "v1/orders",
+        ["MercadoPago:AccessToken"] = "teste",
+        ["MercadoPago:ChavePublica"] = "teste",
         ["Outbox:Intervalo"] = "00:00:00.200",
         ["OpenTelemetry:EndpointOtlp"] = string.Empty
     };

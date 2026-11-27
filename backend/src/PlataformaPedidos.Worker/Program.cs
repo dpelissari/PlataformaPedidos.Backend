@@ -3,6 +3,7 @@ using PlataformaPedidos.Infraestrutura.Observabilidade;
 using PlataformaPedidos.Worker;
 
 var builder = Host.CreateApplicationBuilder(args);
+ConfiguracaoMercadoPagoLocal.Adicionar(builder.Configuration, builder.Environment.ContentRootPath);
 builder.Services.AdicionarInfraestrutura(builder.Configuration);
 builder.Services.AdicionarObservabilidade(
     builder.Configuration,

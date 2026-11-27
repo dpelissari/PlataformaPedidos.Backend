@@ -31,7 +31,7 @@ public class SolicitarPagamentoPedidoManipuladorTestes
         _repositorio.ObterPorIdAsync(pedido.Id, Arg.Any<CancellationToken>()).Returns(pedido);
 
         var resultado = await _manipulador.ManipularAsync(
-            new SolicitarPagamentoPedidoComando(pedido.Id),
+            Comando(pedido.Id),
             CancellationToken.None);
 
         resultado.Sucesso.Should().BeTrue();
@@ -49,7 +49,7 @@ public class SolicitarPagamentoPedidoManipuladorTestes
         _repositorio.ObterPorIdAsync(pedidoId, Arg.Any<CancellationToken>()).Returns((Pedido?)null);
 
         var resultado = await _manipulador.ManipularAsync(
-            new SolicitarPagamentoPedidoComando(pedidoId),
+            Comando(pedidoId),
             CancellationToken.None);
 
         resultado.Erro!.Tipo.Should().Be(TipoErroAplicacao.NaoEncontrado);
@@ -62,7 +62,7 @@ public class SolicitarPagamentoPedidoManipuladorTestes
     public async Task ManipularAsync_ComComandoInvalido_DevolveValidacao()
     {
         var resultado = await _manipulador.ManipularAsync(
-            new SolicitarPagamentoPedidoComando(Guid.Empty),
+            Comando(Guid.Empty),
             CancellationToken.None);
 
         resultado.Erro!.Tipo.Should().Be(TipoErroAplicacao.Validacao);
@@ -76,7 +76,7 @@ public class SolicitarPagamentoPedidoManipuladorTestes
         _repositorio.ObterPorIdAsync(pedido.Id, Arg.Any<CancellationToken>()).Returns(pedido);
 
         var resultado = await _manipulador.ManipularAsync(
-            new SolicitarPagamentoPedidoComando(pedido.Id),
+            Comando(pedido.Id),
             CancellationToken.None);
 
         resultado.Erro!.Tipo.Should().Be(TipoErroAplicacao.Conflito);
@@ -84,4 +84,7 @@ public class SolicitarPagamentoPedidoManipuladorTestes
         await _repositorio.DidNotReceive().AtualizarAsync(Arg.Any<Pedido>(), Arg.Any<CancellationToken>());
         await _cache.DidNotReceive().RemoverAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
+
+    private static SolicitarPagamentoPedidoComando Comando(Guid pedidoId) =>
+        new(pedidoId, "token-teste", "visa", null, 1, "comprador@teste.com", "CPF", "12345678909");
 }

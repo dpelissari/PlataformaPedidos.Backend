@@ -15,6 +15,9 @@ internal static class ApoioDominio
     public static Pedido PedidoEmRascunho() =>
         Pedido.Criar(ClienteId, EnderecoValido(), DataFixaUtc);
 
+    public static CobrancaCartao CobrancaCartao() =>
+        new("token-teste", "visa", null, 1, "comprador@teste.com", "CPF", "12345678909");
+
     public static Pedido PedidoComItem(int quantidade = 2, decimal preco = 10.50m)
     {
         var pedido = PedidoEmRascunho();

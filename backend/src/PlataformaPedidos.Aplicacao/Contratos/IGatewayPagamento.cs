@@ -8,7 +8,26 @@ namespace PlataformaPedidos.Aplicacao.Contratos;
 /// <param name="PedidoId">Identificador do pedido.</param>
 /// <param name="Valor">Valor total cobrado.</param>
 /// <param name="Moeda">Código da moeda.</param>
-public sealed record SolicitacaoAutorizacaoPagamento(Guid PedidoId, decimal Valor, string Moeda);
+/// <param name="Token">Token de uso único do cartão.</param>
+/// <param name="Bandeira">Bandeira do cartão.</param>
+/// <param name="EmissorId">Banco emissor, quando houver.</param>
+/// <param name="Parcelas">Quantidade de parcelas.</param>
+/// <param name="EmailPagador">E-mail do pagador.</param>
+/// <param name="TipoDocumento">Tipo do documento.</param>
+/// <param name="NumeroDocumento">Número do documento.</param>
+/// <param name="ChaveIdempotencia">Chave para o Mercado Pago não cobrar duas vezes a mesma mensagem.</param>
+public sealed record SolicitacaoAutorizacaoPagamento(
+    Guid PedidoId,
+    decimal Valor,
+    string Moeda,
+    string Token,
+    string Bandeira,
+    string? EmissorId,
+    int Parcelas,
+    string EmailPagador,
+    string TipoDocumento,
+    string NumeroDocumento,
+    string ChaveIdempotencia);
 
 /// <summary>
 /// Resposta do gateway sobre a autorização da cobrança.

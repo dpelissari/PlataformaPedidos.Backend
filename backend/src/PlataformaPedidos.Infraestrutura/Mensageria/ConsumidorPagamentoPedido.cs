@@ -87,7 +87,7 @@ public sealed class ConsumidorPagamentoPedido(
         ConsumeResult<string, string> resultado,
         CancellationToken cancellationToken)
     {
-        if (!TentarLer(resultado, out var mensagemId, out var pedidoId, out var valor, out var moeda))
+        if (!TentarLer(resultado, out var mensagemId, out var pedidoId, out var valor, out var moeda, out var cartao))
         {
             logger.LogError("A mensagem de pagamento no offset {Offset} não pôde ser lida.", resultado.Offset);
             return true;
@@ -134,11 +134,29 @@ public sealed class ConsumidorPagamentoPedido(
             return true;
         }
 
+        if (cartao is null || string.IsNullOrWhiteSpace(cartao.Token))
+        {
+            pedido.Cancelar("O pagamento chegou sem o token do cartão.");
+            await repositorio.AtualizarAsync(pedido, cancellationToken);
+            RegistrarProcessada(contexto, mensagemId);
+            await unidadeTrabalho.SalvarAlteracoesAsync(cancellationToken);
+            await cache.RemoverAsync(ChavesCache.Pedido(pedido.Id), cancellationToken);
+            return true;
+        }
+
         var autorizacao = await gateway.AutorizarAsync(
             new SolicitacaoAutorizacaoPagamento(
                 pedido.Id,
                 valor ?? pedido.ValorTotal.Valor,
-                moeda ?? pedido.ValorTotal.Moeda),
+                moeda ?? pedido.ValorTotal.Moeda,
+                cartao.Token,
+                cartao.Bandeira ?? string.Empty,
+                cartao.EmissorId,
+                cartao.Parcelas <= 0 ? 1 : cartao.Parcelas,
+                cartao.EmailPagador ?? string.Empty,
+                cartao.TipoDocumento ?? string.Empty,
+                cartao.NumeroDocumento ?? string.Empty,
+                mensagemId.ToString()),
             cancellationToken);
 
         if (!autorizacao.Sucesso || autorizacao.Valor is null)
@@ -193,12 +211,14 @@ public sealed class ConsumidorPagamentoPedido(
         out Guid mensagemId,
         out Guid pedidoId,
         out decimal? valor,
-        out string? moeda)
+        out string? moeda,
+        out CartaoMensagem? cartao)
     {
         mensagemId = Guid.Empty;
         pedidoId = Guid.Empty;
         valor = null;
         moeda = null;
+        cartao = null;
 
         PagamentoMensagem? corpo;
         try
@@ -223,6 +243,7 @@ public sealed class ConsumidorPagamentoPedido(
         pedidoId = corpo.PedidoId;
         valor = corpo.ValorTotal?.Valor;
         moeda = corpo.ValorTotal?.Moeda;
+        cartao = corpo.Cartao;
         return true;
     }
 
@@ -269,7 +290,20 @@ public sealed class ConsumidorPagamentoPedido(
         }
     }
 
-    private sealed record PagamentoMensagem(Guid Id, Guid PedidoId, ValorMensagem? ValorTotal);
+    private sealed record PagamentoMensagem(
+        Guid Id,
+        Guid PedidoId,
+        ValorMensagem? ValorTotal,
+        CartaoMensagem? Cartao);
+
+    private sealed record CartaoMensagem(
+        string? Token,
+        string? Bandeira,
+        string? EmissorId,
+        int Parcelas,
+        string? EmailPagador,
+        string? TipoDocumento,
+        string? NumeroDocumento);
 
     private sealed record ValorMensagem(decimal Valor, string Moeda);
 }

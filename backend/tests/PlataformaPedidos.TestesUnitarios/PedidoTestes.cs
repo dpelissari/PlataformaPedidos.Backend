@@ -86,7 +86,7 @@ public class PedidoTestes
     public void AdicionarItem_ForaDeRascunho_LancaExcecaoDominio()
     {
         var pedido = ApoioDominio.PedidoComItem();
-        pedido.SolicitarPagamento();
+        pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
 
         var acao = () => pedido.AdicionarItem(Guid.NewGuid(), "Caneta", 1, Dinheiro.Criar(2m));
 
@@ -127,7 +127,7 @@ public class PedidoTestes
     {
         var pedido = ApoioDominio.PedidoComItem();
         var itemId = pedido.Itens[0].Id;
-        pedido.SolicitarPagamento();
+        pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
 
         var acao = () => pedido.RemoverItem(itemId);
 
@@ -140,7 +140,7 @@ public class PedidoTestes
     {
         var pedido = ApoioDominio.PedidoComItem();
 
-        pedido.SolicitarPagamento();
+        pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
 
         pedido.Status.Should().Be(StatusPedido.AguardandoPagamento);
         var evento = pedido.Eventos.OfType<PagamentoPedidoSolicitadoEvento>().Should().ContainSingle().Subject;
@@ -154,7 +154,7 @@ public class PedidoTestes
     {
         var pedido = ApoioDominio.PedidoEmRascunho();
 
-        var acao = () => pedido.SolicitarPagamento();
+        var acao = () => pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
 
         acao.Should().Throw<ExcecaoDominio>();
         pedido.Status.Should().Be(StatusPedido.Rascunho);
@@ -165,10 +165,10 @@ public class PedidoTestes
     public void SolicitarPagamento_ForaDeRascunho_LancaExcecaoDominio()
     {
         var pedido = ApoioDominio.PedidoComItem();
-        pedido.SolicitarPagamento();
+        pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
         pedido.ConfirmarPagamento();
 
-        var acao = () => pedido.SolicitarPagamento();
+        var acao = () => pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
 
         acao.Should().Throw<ExcecaoDominio>();
         pedido.Status.Should().Be(StatusPedido.Confirmado);
@@ -178,7 +178,7 @@ public class PedidoTestes
     public void ConfirmarPagamento_AguardandoPagamento_ConfirmaERegistraEvento()
     {
         var pedido = ApoioDominio.PedidoComItem();
-        pedido.SolicitarPagamento();
+        pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
 
         pedido.ConfirmarPagamento();
 
@@ -202,7 +202,7 @@ public class PedidoTestes
     public void ConfirmarPagamento_JaConfirmado_LancaExcecaoDominio()
     {
         var pedido = ApoioDominio.PedidoComItem();
-        pedido.SolicitarPagamento();
+        pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
         pedido.ConfirmarPagamento();
 
         var acao = () => pedido.ConfirmarPagamento();
@@ -230,7 +230,7 @@ public class PedidoTestes
     public void Cancelar_AguardandoPagamento_CancelaERegistraEvento()
     {
         var pedido = ApoioDominio.PedidoComItem();
-        pedido.SolicitarPagamento();
+        pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
 
         pedido.Cancelar("Pagamento recusado");
 
@@ -258,7 +258,7 @@ public class PedidoTestes
     public void Cancelar_Confirmado_LancaExcecaoDominio()
     {
         var pedido = ApoioDominio.PedidoComItem();
-        pedido.SolicitarPagamento();
+        pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
         pedido.ConfirmarPagamento();
 
         var acao = () => pedido.Cancelar("Arrependimento");

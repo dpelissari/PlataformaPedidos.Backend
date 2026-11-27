@@ -129,9 +129,10 @@ public sealed class Pedido : AgregadoRaiz
     }
 
     /// <summary>
-    /// Envia o rascunho para pagamento quando há ao menos um item.
+    /// Envia o rascunho para pagamento quando há ao menos um item e um token de cartão.
     /// </summary>
-    public void SolicitarPagamento()
+    /// <param name="cartao">Token gerado no navegador e dados do pagador.</param>
+    public void SolicitarPagamento(CobrancaCartao cartao)
     {
         if (Status != StatusPedido.Rascunho)
             throw new ExcecaoDominio("Só um pedido em rascunho pode solicitar pagamento.");
@@ -139,8 +140,11 @@ public sealed class Pedido : AgregadoRaiz
         if (_itens.Count == 0)
             throw new ExcecaoDominio("O pedido precisa ter ao menos um item para solicitar pagamento.");
 
+        if (string.IsNullOrWhiteSpace(cartao.Token))
+            throw new ExcecaoDominio("O token do cartão é obrigatório.");
+
         Status = StatusPedido.AguardandoPagamento;
-        AdicionarEvento(new PagamentoPedidoSolicitadoEvento(Id, ValorTotal, DateTime.UtcNow));
+        AdicionarEvento(new PagamentoPedidoSolicitadoEvento(Id, ValorTotal, cartao, DateTime.UtcNow));
     }
 
     /// <summary>

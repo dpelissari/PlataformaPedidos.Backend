@@ -5,6 +5,7 @@ using PlataformaPedidos.Infraestrutura.Saude;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+ConfiguracaoMercadoPagoLocal.Adicionar(builder.Configuration, builder.Environment.ContentRootPath);
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
@@ -28,7 +29,7 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseCors("Angular");
 
-if (!app.Environment.IsEnvironment("Testing"))
+if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
     app.UseHttpsRedirection();
 
 app.MapOpenApi();
@@ -36,6 +37,7 @@ app.MapScalarApiReference();
 app.MapHealthChecks("/health");
 app.MapearPedidos();
 app.MapearEnderecos();
+app.MapearPagamentos();
 
 app.Run();
 

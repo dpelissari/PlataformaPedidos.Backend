@@ -1,0 +1,6 @@
+{
+  "MercadoPago": {
+    "AccessToken": "cole-o-access-token-de-teste",
+    "ChavePublica": "cole-a-public-key-de-teste"
+  }
+}

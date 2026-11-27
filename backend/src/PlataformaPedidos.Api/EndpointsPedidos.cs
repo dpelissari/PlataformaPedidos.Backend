@@ -31,6 +31,7 @@ internal static class EndpointsPedidos
         grupo.MapPost("{id:guid}/solicitar-pagamento", SolicitarPagamento)
             .WithName("SolicitarPagamentoPedido")
             .Produces<PedidoResposta>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
@@ -72,10 +73,21 @@ internal static class EndpointsPedidos
 
     private static async Task<IResult> SolicitarPagamento(
         Guid id,
+        SolicitarPagamentoCorpo corpo,
         SolicitarPagamentoPedidoManipulador manipulador,
         CancellationToken cancellationToken)
     {
-        var resultado = await manipulador.ManipularAsync(new SolicitarPagamentoPedidoComando(id), cancellationToken);
+        var resultado = await manipulador.ManipularAsync(
+            new SolicitarPagamentoPedidoComando(
+                id,
+                corpo.Token ?? string.Empty,
+                corpo.Bandeira ?? string.Empty,
+                corpo.EmissorId,
+                corpo.Parcelas,
+                corpo.EmailPagador ?? string.Empty,
+                corpo.TipoDocumento ?? string.Empty,
+                corpo.NumeroDocumento ?? string.Empty),
+            cancellationToken);
         return ResultadoHttp.Para(resultado, Results.Ok);
     }
 
@@ -97,3 +109,22 @@ internal static class EndpointsPedidos
 /// </summary>
 /// <param name="Motivo">Motivo obrigatório do cancelamento.</param>
 internal sealed record CancelarPedidoCorpo(string? Motivo);
+
+/// <summary>
+/// Cartão já tokenizado. O número do cartão não chega na API.
+/// </summary>
+/// <param name="Token">Token de uso único.</param>
+/// <param name="Bandeira">Bandeira informada pelo Mercado Pago.</param>
+/// <param name="EmissorId">Banco emissor, quando houver.</param>
+/// <param name="Parcelas">Quantidade de parcelas.</param>
+/// <param name="EmailPagador">E-mail do pagador.</param>
+/// <param name="TipoDocumento">Tipo do documento.</param>
+/// <param name="NumeroDocumento">Número do documento.</param>
+internal sealed record SolicitarPagamentoCorpo(
+    string? Token,
+    string? Bandeira,
+    string? EmissorId,
+    int Parcelas,
+    string? EmailPagador,
+    string? TipoDocumento,
+    string? NumeroDocumento);

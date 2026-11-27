@@ -49,7 +49,7 @@ public static class ExtensoesInfraestrutura
         servicos.AddSingleton<IServicoCache, ServicoCacheRedis>();
 
         servicos.Configure<OpcoesConsultaCep>(configuracao.GetSection(OpcoesConsultaCep.Secao));
-        servicos.Configure<OpcoesGatewayPagamento>(configuracao.GetSection(OpcoesGatewayPagamento.Secao));
+        servicos.Configure<OpcoesMercadoPago>(configuracao.GetSection(OpcoesMercadoPago.Secao));
         servicos.Configure<OpcoesKafka>(configuracao.GetSection(OpcoesKafka.Secao));
 
         servicos.AddHttpClient<IServicoConsultaCep, ServicoConsultaCepHttp>((provedor, cliente) =>
@@ -60,7 +60,7 @@ public static class ExtensoesInfraestrutura
 
         servicos.AddHttpClient<IGatewayPagamento, GatewayPagamentoHttp>((provedor, cliente) =>
         {
-            var opcoes = provedor.GetRequiredService<Microsoft.Extensions.Options.IOptions<OpcoesGatewayPagamento>>().Value;
+            var opcoes = provedor.GetRequiredService<Microsoft.Extensions.Options.IOptions<OpcoesMercadoPago>>().Value;
             cliente.BaseAddress = CriarUrlBase(opcoes.UrlBase);
         }).AdicionarResilienciaHttp();
 

@@ -71,7 +71,7 @@ public class CancelarPedidoManipuladorTestes
     public async Task ManipularAsync_ComPedidoConfirmado_DevolveConflito()
     {
         var pedido = ApoioDominio.PedidoComItem();
-        pedido.SolicitarPagamento();
+        pedido.SolicitarPagamento(ApoioDominio.CobrancaCartao());
         pedido.ConfirmarPagamento();
         _repositorio.ObterPorIdAsync(pedido.Id, Arg.Any<CancellationToken>()).Returns(pedido);
 

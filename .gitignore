@@ -5,6 +5,7 @@
 
 # dotenv files
 .env
+mercadopago.local.json
 
 # User-specific files
 *.rsuser

@@ -38,7 +38,14 @@ public sealed class SolicitarPagamentoPedidoManipulador(
 
         try
         {
-            pedido.SolicitarPagamento();
+            pedido.SolicitarPagamento(new CobrancaCartao(
+                comando.Token.Trim(),
+                comando.Bandeira.Trim(),
+                string.IsNullOrWhiteSpace(comando.EmissorId) ? null : comando.EmissorId.Trim(),
+                comando.Parcelas,
+                comando.EmailPagador.Trim(),
+                comando.TipoDocumento.Trim(),
+                new string(comando.NumeroDocumento.Where(char.IsDigit).ToArray())));
         }
         catch (ExcecaoDominio excecao)
         {
