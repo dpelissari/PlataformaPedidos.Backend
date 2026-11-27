@@ -7,6 +7,9 @@
 .env
 mercadopago.local.json
 
+# Editor local
+.cursor/
+
 # User-specific files
 *.rsuser
 *.suo
